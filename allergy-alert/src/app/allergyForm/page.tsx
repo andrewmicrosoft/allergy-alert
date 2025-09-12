@@ -117,7 +117,7 @@ export default function AllergyForm() {
   };
 
   const addAllergyField = () => {
-    const newId = Date.now().toString();
+    const newId = crypto.randomUUID();
     setAllergyFields(prev => [...prev, { id: newId, value: '', error: '' }]);
   };
 

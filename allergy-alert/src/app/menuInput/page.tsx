@@ -1,7 +1,17 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+
+interface ProcessingData {
+  option: string;
+  timestamp: string;
+  fileName?: string;
+  fileSize?: number;
+  fileType?: string;
+  restaurantName?: string;
+  foodName?: string;
+}
 
 export default function MenuInput() {
   const router = useRouter();
@@ -16,12 +26,27 @@ export default function MenuInput() {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
+  // Cleanup object URLs on component unmount
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   const handleOptionSelect = (option: string) => {
     setSelectedOption(option);
     setError('');
     // Reset other states when switching options
     setSelectedFile(null);
+    
+    // Revoke previous object URL to prevent memory leak
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
     setPreviewUrl('');
+    
     setRestaurantName('');
     setFoodName('');
   };
@@ -39,6 +64,11 @@ export default function MenuInput() {
       if (file.size > 10 * 1024 * 1024) {
         setError('File size must be less than 10MB');
         return;
+      }
+
+      // Revoke previous object URL to prevent memory leak
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
       }
 
       setSelectedFile(file);
@@ -76,7 +106,7 @@ export default function MenuInput() {
     setError('');
 
     try {
-      let processingData: any = {
+      let processingData: ProcessingData = {
         option: selectedOption,
         timestamp: new Date().toISOString()
       };
@@ -197,6 +227,10 @@ export default function MenuInput() {
                         />
                         <button
                           onClick={() => {
+                            // Revoke object URL to prevent memory leak
+                            if (previewUrl) {
+                              URL.revokeObjectURL(previewUrl);
+                            }
                             setSelectedFile(null);
                             setPreviewUrl('');
                           }}
