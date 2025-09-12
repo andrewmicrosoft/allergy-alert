@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -16,7 +17,7 @@ export default function Home() {
           <li className="mb-2 tracking-[-.01em]">
             Get started by editing{" "}
             <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
+              src/app/page.tsx
             </code>
             .
           </li>
@@ -24,6 +25,25 @@ export default function Home() {
             Save and see your changes instantly.
           </li>
         </ol>
+
+        {/* Allergy Alert Navigation */}
+        <div className="flex flex-col items-center gap-4 p-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          <h2 className="text-xl font-semibold text-blue-900 dark:text-blue-100">
+            🚨 Allergy Alert System
+          </h2>
+          <p className="text-center text-blue-700 dark:text-blue-200 text-sm">
+            Manage your food allergies and keep your information secure
+          </p>
+          <Link
+            href="/allergyForm"
+            className="inline-flex items-center gap-2 rounded-full border border-solid border-transparent transition-colors bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 font-medium text-sm sm:text-base h-10 sm:h-12 px-6 sm:px-8"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            </svg>
+            Enter Allergy Information
+          </Link>
+        </div>
 
         <div className="flex gap-4 items-center flex-col sm:flex-row">
           <a
