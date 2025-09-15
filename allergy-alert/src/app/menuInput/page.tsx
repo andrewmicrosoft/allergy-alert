@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { getSafeFoodsByRestaurantName } from '../modules/aiFunctions.mjs';
 
 interface ProcessingData {
   option: string;
@@ -13,10 +14,46 @@ interface ProcessingData {
   foodName?: string;
 }
 
+interface FoodItem {
+  name: string;
+  safetyClassification: "More Safe" | "Questionable" | "Avoid";
+  questions: string[];
+  allergenNotes?: string;
+}
+
+interface MenuAnalysis {
+  restaurantName: string;
+  userAllergies: string[];
+  analysisDate: string;
+  moreSafeItems: FoodItem[];
+  questionableItems: FoodItem[];
+  avoidItems: FoodItem[];
+  generalNotes?: string;
+  error?: string;
+  rawResponse?: string;
+}
+
 export default function MenuInput() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  
+  // Get allergies from URL parameters
+  const [userAllergies, setUserAllergies] = useState<string[]>([]);
+  
+  useEffect(() => {
+    const allergiesParam = searchParams.get('allergies');
+    if (allergiesParam) {
+      try {
+        const allergies = JSON.parse(decodeURIComponent(allergiesParam));
+        setUserAllergies(allergies);
+      } catch (error) {
+        console.error('Failed to parse allergies from URL:', error);
+        setUserAllergies([]);
+      }
+    }
+  }, [searchParams]);
   
   const [selectedOption, setSelectedOption] = useState<string>('');
   const [restaurantName, setRestaurantName] = useState<string>('');
@@ -25,6 +62,8 @@ export default function MenuInput() {
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [aiResults, setAiResults] = useState<MenuAnalysis | null>(null);
+  const [showResults, setShowResults] = useState<boolean>(false);
 
   // Cleanup object URLs on component unmount
   useEffect(() => {
@@ -104,6 +143,8 @@ export default function MenuInput() {
   const validateAndProceed = async () => {
     setIsProcessing(true);
     setError('');
+    setAiResults(null);
+    setShowResults(false);
 
     try {
       let processingData: ProcessingData = {
@@ -111,36 +152,55 @@ export default function MenuInput() {
         timestamp: new Date().toISOString()
       };
 
-      if (selectedOption === 'picture') {
+      // For now, we'll only handle the text input option with restaurant name
+      if (selectedOption === 'text') {
+        if (!restaurantName.trim()) {
+          setError('Please enter a restaurant name to check for allergens');
+          setIsProcessing(false);
+          return;
+        }
+        
+        processingData.restaurantName = restaurantName.trim();
+        if (foodName.trim()) {
+          processingData.foodName = foodName.trim();
+        }
+
+        console.log('Processing menu input:', processingData);
+        console.log('User allergies:', userAllergies);
+
+        // Call the AI function with restaurant name and allergies
+        const aiResponse = await getSafeFoodsByRestaurantName(restaurantName.trim(), userAllergies);
+
+        if (!aiResponse) {
+          setError('Unable to fetch results from the AI service');
+          setIsProcessing(false);
+          return;
+        }
+
+        // The response is now JSON, so we can set it directly
+        setAiResults(aiResponse);
+        setShowResults(true);
+
+      } else if (selectedOption === 'picture') {
         if (!selectedFile) {
           setError('Please select or capture an image');
           setIsProcessing(false);
           return;
         }
+        
         processingData.fileName = selectedFile.name;
         processingData.fileSize = selectedFile.size;
         processingData.fileType = selectedFile.type;
-      } else if (selectedOption === 'text') {
-        if (!restaurantName.trim() && !foodName.trim()) {
-          setError('Please enter either a restaurant name or food name');
-          setIsProcessing(false);
-          return;
-        }
-        processingData.restaurantName = restaurantName.trim();
-        processingData.foodName = foodName.trim();
+        
+        // For picture option, show a message that this feature is coming soon
+        setError('Picture analysis is coming soon. Please use the text input option for now.');
+        setIsProcessing(false);
+        return;
       }
-
-      console.log('Processing menu input:', processingData);
-
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Navigate to results page (you can create this later)
-      router.push('/results');
       
     } catch (error) {
       console.error('Processing error:', error);
-      setError('An error occurred while processing your request. Please try again.');
+      setError('An error occurred while analyzing the menu. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -354,6 +414,167 @@ export default function MenuInput() {
                   )}
                 </button>
               </div>
+
+              {/* AI Results Display */}
+              {showResults && aiResults && (
+                <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <svg className="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <div className="ml-3 flex-1">
+                      <h3 className="text-lg font-medium text-blue-900 mb-3">
+                        Allergy Analysis Results for {aiResults.restaurantName}
+                      </h3>
+                      
+                      {/* User Allergies */}
+                      {aiResults.userAllergies && aiResults.userAllergies.length > 0 && (
+                        <div className="mb-4">
+                          <p className="text-sm font-medium text-blue-800">Your allergies:</p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {aiResults.userAllergies.map((allergy, index) => (
+                              <span key={index} className="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
+                                {allergy}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Analysis Date */}
+                      <div className="mb-4 text-xs text-blue-600">
+                        Analysis completed: {new Date(aiResults.analysisDate).toLocaleString()}
+                      </div>
+
+                      {/* Error Handling */}
+                      {aiResults.error && (
+                        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                          <p className="text-sm text-yellow-800">
+                            <strong>Note:</strong> {aiResults.error}
+                          </p>
+                          {aiResults.rawResponse && (
+                            <details className="mt-2">
+                              <summary className="cursor-pointer text-xs text-yellow-600">Show raw response</summary>
+                              <pre className="mt-2 text-xs bg-yellow-100 p-2 rounded whitespace-pre-wrap">
+                                {aiResults.rawResponse}
+                              </pre>
+                            </details>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Food Categories */}
+                      <div className="space-y-6">
+                        {/* More Safe Items */}
+                        {aiResults.moreSafeItems && aiResults.moreSafeItems.length > 0 && (
+                          <div className="bg-green-50 border border-green-200 rounded-md p-4">
+                            <h4 className="text-base font-semibold text-green-800 mb-3 flex items-center">
+                              <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              More Safe ({aiResults.moreSafeItems.length} items)
+                            </h4>
+                            <div className="space-y-3">
+                              {aiResults.moreSafeItems.map((item, index) => (
+                                <div key={index} className="bg-white p-3 rounded border border-green-100">
+                                  <h5 className="font-medium text-green-900">{item.name}</h5>
+                                  {item.allergenNotes && (
+                                    <p className="text-sm text-green-700 mt-1">{item.allergenNotes}</p>
+                                  )}
+                                  {item.questions && item.questions.length > 0 && (
+                                    <div className="mt-2">
+                                      <p className="text-xs font-medium text-green-800">Questions to ask:</p>
+                                      <ul className="text-xs text-green-700 list-disc list-inside mt-1">
+                                        {item.questions.map((question, qIndex) => (
+                                          <li key={qIndex}>{question}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Questionable Items */}
+                        {aiResults.questionableItems && aiResults.questionableItems.length > 0 && (
+                          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                            <h4 className="text-base font-semibold text-yellow-800 mb-3 flex items-center">
+                              <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
+                              </svg>
+                              Questionable ({aiResults.questionableItems.length} items)
+                            </h4>
+                            <div className="space-y-3">
+                              {aiResults.questionableItems.map((item, index) => (
+                                <div key={index} className="bg-white p-3 rounded border border-yellow-100">
+                                  <h5 className="font-medium text-yellow-900">{item.name}</h5>
+                                  {item.allergenNotes && (
+                                    <p className="text-sm text-yellow-700 mt-1">{item.allergenNotes}</p>
+                                  )}
+                                  {item.questions && item.questions.length > 0 && (
+                                    <div className="mt-2">
+                                      <p className="text-xs font-medium text-yellow-800">Questions to ask:</p>
+                                      <ul className="text-xs text-yellow-700 list-disc list-inside mt-1">
+                                        {item.questions.map((question, qIndex) => (
+                                          <li key={qIndex}>{question}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Avoid Items */}
+                        {aiResults.avoidItems && aiResults.avoidItems.length > 0 && (
+                          <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                            <h4 className="text-base font-semibold text-red-800 mb-3 flex items-center">
+                              <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Avoid ({aiResults.avoidItems.length} items)
+                            </h4>
+                            <div className="space-y-3">
+                              {aiResults.avoidItems.map((item, index) => (
+                                <div key={index} className="bg-white p-3 rounded border border-red-100">
+                                  <h5 className="font-medium text-red-900">{item.name}</h5>
+                                  {item.allergenNotes && (
+                                    <p className="text-sm text-red-700 mt-1">{item.allergenNotes}</p>
+                                  )}
+                                  {item.questions && item.questions.length > 0 && (
+                                    <div className="mt-2">
+                                      <p className="text-xs font-medium text-red-800">Questions to ask:</p>
+                                      <ul className="text-xs text-red-700 list-disc list-inside mt-1">
+                                        {item.questions.map((question, qIndex) => (
+                                          <li key={qIndex}>{question}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* General Notes */}
+                      {aiResults.generalNotes && (
+                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                          <h4 className="text-sm font-medium text-blue-800 mb-2">General Notes:</h4>
+                          <p className="text-sm text-blue-700">{aiResults.generalNotes}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

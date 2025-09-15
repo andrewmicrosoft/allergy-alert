@@ -187,8 +187,9 @@ export default function AllergyForm() {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Navigate to next page (you can change this route as needed)
-      router.push('/menuInput'); // or wherever you want to navigate
+      // Pass allergies data to menuInput page via URL params
+      const allergiesParam = encodeURIComponent(JSON.stringify(validAllergies));
+      router.push(`/menuInput?allergies=${allergiesParam}`);
       
     } catch (error) {
       console.error('Submission error:', error);
