@@ -2,10 +2,6 @@ import { AzureOpenAI } from "openai";
 import { zodResponseFormat } from 'openai/helpers/zod';
 import { z } from 'zod';
 
-const endpoint = "https://test-project-foundry-resource.cognitiveservices.azure.com/";
-const modelName = "gpt-5-chat";
-const deployment = "gpt-5-chat";
-
 const FoodItemSchema = z.object({
   name: z.string().describe("The name of the food item"),
   safetyClassification: z.enum(["More Safe", "Questionable", "Avoid"]).describe("The safety classification of the food item based on allergies"),
@@ -21,12 +17,21 @@ const MenuSchema = z.object({
 
 export async function getSafeFoodsByRestaurantName(restaurantName, allergies) {
 
-const apiKey = "4g6FlwB783KWXy2ooRiOWN7OiZtWeHbrLCj3BE7pApuuiucBg84aJQQJ99BIACHYHv6XJ3w3AAAAACOGZhAD";
-const apiVersion = "2024-08-01-preview";
-const endpoint = "https://test-project-foundry-resource.cognitiveservices.azure.com/";
-const modelName = "gpt-4o";
-const deployment = "gpt-4o";
+const apiKey = process.env.AZURE_OPENAI_API_KEY;
+const apiVersion = process.env.AZURE_OPENAI_API_VERSION || "2024-08-01-preview";
+const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
+const modelName = process.env.AZURE_OPENAI_MODEL_NAME || "gpt-4o";
+const deployment = process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o";
 const dangerouslyAllowBrowser = true;
+
+// Check for required environment variables
+if (!apiKey) {
+  throw new Error('AZURE_OPENAI_API_KEY environment variable is required');
+}
+if (!endpoint) {
+  throw new Error('AZURE_OPENAI_ENDPOINT environment variable is required');
+}
+
 const options = { endpoint, apiKey, deployment, apiVersion, dangerouslyAllowBrowser }
 
 const client = new AzureOpenAI(options);

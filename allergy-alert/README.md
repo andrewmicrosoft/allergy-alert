@@ -2,7 +2,34 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+First, set up your environment variables by creating a `.env.local` file in the root directory:
+
+```bash
+cp .env.local.example .env.local
+```
+
+Then add your Azure OpenAI configuration:
+
+```env
+AZURE_OPENAI_API_KEY=your_azure_openai_api_key_here
+AZURE_OPENAI_ENDPOINT=https://your-resource-name.cognitiveservices.azure.com/
+AZURE_OPENAI_MODEL_NAME=gpt-4o
+AZURE_OPENAI_DEPLOYMENT=gpt-4o
+AZURE_OPENAI_API_VERSION=2024-08-01-preview
+```
+
+### Required Environment Variables
+
+- `AZURE_OPENAI_API_KEY`: Your Azure OpenAI API key (required)
+- `AZURE_OPENAI_ENDPOINT`: Your Azure OpenAI endpoint URL (required)
+
+### Optional Environment Variables
+
+- `AZURE_OPENAI_MODEL_NAME`: The model name to use (default: "gpt-4o")
+- `AZURE_OPENAI_DEPLOYMENT`: The deployment name (default: "gpt-4o")
+- `AZURE_OPENAI_API_VERSION`: The API version to use (default: "2024-08-01-preview")
+
+Then, run the development server:
 
 ```bash
 npm run dev
