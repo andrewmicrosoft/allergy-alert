@@ -38,7 +38,6 @@ const Dashboard = () => {
   // Restaurant lookup state
   const [showRestaurantLookup, setShowRestaurantLookup] = useState(false);
   const [restaurantName, setRestaurantName] = useState('');
-  const [foodName, setFoodName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
   const [menuData, setMenuData] = useState<MenuData | null>(null);
@@ -184,7 +183,6 @@ const Dashboard = () => {
       // Reset form when toggling
       if (!showRestaurantLookup) {
         setRestaurantName('');
-        setFoodName('');
       }
     } else if (card.id === 'take-upload-picture') {
       // Check if user has allergies set up
@@ -198,7 +196,6 @@ const Dashboard = () => {
       if (showRestaurantLookup) {
         setShowRestaurantLookup(false);
         setRestaurantName('');
-        setFoodName('');
         setMenuData(null);
         setShowResults(false);
       }
@@ -221,12 +218,8 @@ const Dashboard = () => {
     }
   };
 
-  const handleTextInputChange = (field: 'restaurant' | 'food', value: string) => {
-    if (field === 'restaurant') {
-      setRestaurantName(value);
-    } else {
-      setFoodName(value);
-    }
+  const handleTextInputChange = (field: 'restaurant', value: string) => {
+    setRestaurantName(value);
     setError('');
   };
 
@@ -281,7 +274,6 @@ const Dashboard = () => {
   const goBackToDashboard = () => {
     setShowRestaurantLookup(false);
     setRestaurantName('');
-    setFoodName('');
     setError('');
     setMenuData(null);
     setShowResults(false);
@@ -405,14 +397,14 @@ const Dashboard = () => {
 
               {/* Restaurant lookup form */}
               <div className="relative z-10 space-y-8 transform transition-all duration-700 ease-out animate-in slide-in-from-bottom-2 fade-in-0 delay-300">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="group transform transition-all duration-500 ease-out animate-in slide-in-from-left-2 fade-in-0 delay-500">
+                <div className="max-w-2xl mx-auto">
+                  <div className="group transform transition-all duration-500 ease-out animate-in slide-in-from-bottom-2 fade-in-0 delay-500">
                     <label htmlFor="restaurant" className="block text-sm font-semibold text-gray-800 mb-3 flex items-center">
                       <svg className="h-4 w-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      Restaurant Name *
+                      Restaurant Name or Description*
                     </label>
                     <div className="relative">
                       <input
@@ -421,34 +413,11 @@ const Dashboard = () => {
                         value={restaurantName}
                         onChange={(e) => handleTextInputChange('restaurant', e.target.value)}
                         className="w-full px-4 py-4 pl-12 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 transform focus:scale-[1.02] group-hover:shadow-md"
-                        placeholder="e.g., McDonald's, Olive Garden"
+                        placeholder="e.g., McDonald's, Ethiopian food"
                       />
                       <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
                         <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="group transform transition-all duration-500 ease-out animate-in slide-in-from-right-2 fade-in-0 delay-700">
-                    <label htmlFor="food" className="block text-sm font-semibold text-gray-800 mb-3 flex items-center">
-                      <svg className="h-4 w-4 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
-                      </svg>
-                      Specific Food Item (Optional)
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        id="food"
-                        value={foodName}
-                        onChange={(e) => handleTextInputChange('food', e.target.value)}
-                        className="w-full px-4 py-4 pl-12 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all duration-300 transform focus:scale-[1.02] group-hover:shadow-md"
-                        placeholder="e.g., Caesar Salad, Chicken Sandwich"
-                      />
-                      <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
-                        <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
                         </svg>
                       </div>
                     </div>
@@ -464,7 +433,7 @@ const Dashboard = () => {
                     </div>
                     <div>
                       <h3 className="text-sm font-semibold text-blue-800 mb-1">How it works</h3>
-                      <p className="text-sm text-blue-700">Enter a restaurant name to get personalized allergy information for their menu items based on your dietary restrictions.</p>
+                      <p className="text-sm text-blue-700">Enter a restaurant name or description to get personalized allergy information for their menu items based on your dietary restrictions.</p>
                     </div>
                   </div>
                 </div>
