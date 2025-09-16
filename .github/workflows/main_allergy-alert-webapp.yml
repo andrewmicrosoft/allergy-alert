@@ -54,8 +54,6 @@ jobs:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_A3A7713DCEB8493F99438A9148287200 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_0550A7DA9A1143A7BEA9B211357EEEB7 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_15CF4EC45F314C6299CEFFACEE768CDF }}
-          NEXT_PUBLIC_AZURE_OPENAI_API_KEY: ${{ secrets.NEXT_PUBLIC_AZURE_OPENAI_API_KEY }}
-          NEXT_PUBLIC_AZURE_OPENAI_ENDPOINT: ${{ secrets.NEXT_PUBLIC_AZURE_OPENAI_ENDPOINT }}
 
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
