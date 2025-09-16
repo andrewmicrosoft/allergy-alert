@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAllergy } from '../contexts/AllergyContext';
 
 interface AllergyField {
   id: string;
@@ -24,16 +25,24 @@ interface FormErrors {
 
 export default function AllergyForm() {
   const router = useRouter();
+  const { setUserProfile, userProfile } = useAllergy();
   
   const [formData, setFormData] = useState<FormData>({
-    name: '',
-    email: '',
-    emergencyContact: ''
+    name: userProfile?.name || '',
+    email: userProfile?.email || '',
+    emergencyContact: userProfile?.emergencyContact || ''
   });
 
-  const [allergyFields, setAllergyFields] = useState<AllergyField[]>([
-    { id: '1', value: '', error: '' }
-  ]);
+  const [allergyFields, setAllergyFields] = useState<AllergyField[]>(() => {
+    if (userProfile?.allergies && userProfile.allergies.length > 0) {
+      return userProfile.allergies.map((allergy, index) => ({
+        id: `${index + 1}`,
+        value: allergy,
+        error: ''
+      }));
+    }
+    return [{ id: '1', value: '', error: '' }];
+  });
 
   const [formErrors, setFormErrors] = useState<FormErrors>({
     name: '',
@@ -177,18 +186,23 @@ export default function AllergyForm() {
         .map(field => field.value.trim());
 
       const submissionData = {
-        ...formData,
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        emergencyContact: formData.emergencyContact.trim(),
         allergies: validAllergies,
         submittedAt: new Date().toISOString()
       };
 
       console.log('Form submitted:', submissionData);
       
+      // Save to context instead of URL params
+      setUserProfile(submissionData);
+      
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Navigate to next page (you can change this route as needed)
-      router.push('/menuInput'); // or wherever you want to navigate
+      // Navigate to menuInput without query params
+      router.push('/dashboard');
       
     } catch (error) {
       console.error('Submission error:', error);
@@ -199,13 +213,23 @@ export default function AllergyForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
-        <div className="bg-white shadow-lg rounded-lg p-8">
+        {/* Header matching dashboard style */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-6 justify-center">
+            <div className="flex items-center gap-2">
+              <span className="text-purple-600 text-2xl">🌟</span>
+              <h1 className="text-2xl font-bold text-gray-800">Allergy Alert</h1>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white shadow-lg rounded-3xl p-8 border border-white/20 backdrop-blur-sm">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 text-center">
+            <h2 className="text-3xl font-bold text-gray-900 text-center">
               Food Allergy Information Form
-            </h1>
+            </h2>
             <p className="mt-2 text-center text-gray-600">
               Please provide your food allergies for our records
             </p>
@@ -225,8 +249,8 @@ export default function AllergyForm() {
                   required
                   value={formData.name}
                   onChange={handleFormDataChange}
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    formErrors.name ? 'border-red-500' : 'border-gray-300 focus:border-blue-500'
+                  className={`w-full px-4 py-3 border rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 ${
+                    formErrors.name ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-purple-500'
                   }`}
                   placeholder="Enter your full name"
                 />
@@ -246,8 +270,8 @@ export default function AllergyForm() {
                   required
                   value={formData.email}
                   onChange={handleFormDataChange}
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                    formErrors.email ? 'border-red-500' : 'border-gray-300 focus:border-blue-500'
+                  className={`w-full px-4 py-3 border rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 ${
+                    formErrors.email ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-purple-500'
                   }`}
                   placeholder="Enter your email"
                 />
@@ -266,7 +290,7 @@ export default function AllergyForm() {
                 <button
                   type="button"
                   onClick={addAllergyField}
-                  className="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm leading-4 font-medium rounded-xl text-purple-700 bg-purple-100 hover:bg-purple-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all duration-200 shadow-sm"
                 >
                   <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -283,8 +307,8 @@ export default function AllergyForm() {
                         type="text"
                         value={field.value}
                         onChange={(e) => handleAllergyChange(field.id, e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                          field.error ? 'border-red-500' : 'border-gray-300 focus:border-blue-500'
+                        className={`w-full px-4 py-3 border rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all duration-200 ${
+                          field.error ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-purple-500'
                         }`}
                         placeholder={`Food allergy ${index + 1} (e.g., peanuts, shellfish, dairy)`}
                       />
@@ -296,7 +320,7 @@ export default function AllergyForm() {
                       <button
                         type="button"
                         onClick={() => removeAllergyField(field.id)}
-                        className="mt-2 inline-flex items-center p-1 border border-transparent rounded-full text-red-600 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        className="mt-3 inline-flex items-center p-2 border border-transparent rounded-xl text-red-600 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200"
                       >
                         <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -327,7 +351,7 @@ export default function AllergyForm() {
                 name="emergencyContact"
                 value={formData.emergencyContact}
                 onChange={handleFormDataChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
                 placeholder="Name and phone number of emergency contact"
               />
             </div>
@@ -337,10 +361,10 @@ export default function AllergyForm() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white transition duration-200 ${
+                className={`w-full flex justify-center py-4 px-6 border border-transparent rounded-xl shadow-lg text-lg font-medium text-white transition-all duration-200 transform hover:scale-105 ${
                   isSubmitting
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                    ? 'bg-gray-400 cursor-not-allowed scale-100'
+                    : 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500'
                 }`}
               >
                 {isSubmitting ? (
@@ -359,18 +383,20 @@ export default function AllergyForm() {
           </form>
 
           {/* Additional Information */}
-          <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-md">
+          <div className="mt-8 p-6 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-2xl">
             <div className="flex">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
+                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                  <svg className="h-5 w-5 text-purple-600" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                </div>
               </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800">
+              <div className="ml-4">
+                <h3 className="text-sm font-semibold text-purple-800">
                   Form Guidelines
                 </h3>
-                <div className="mt-2 text-sm text-blue-700">
+                <div className="mt-2 text-sm text-purple-700">
                   <ul className="list-disc list-inside space-y-1">
                     <li>Use the "Add Allergy" button to include multiple food allergies</li>
                     <li>Only letters and spaces are allowed in allergy fields</li>
