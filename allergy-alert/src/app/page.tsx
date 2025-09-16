@@ -1,123 +1,112 @@
-import Image from "next/image";
 import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        {/* Allergy Alert Navigation */}
-        <div className="flex flex-col items-center gap-4 p-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-          <h2 className="text-xl font-semibold text-blue-900 dark:text-blue-100">
-            🚨 Allergy Alert System
-          </h2>
-          <p className="text-center text-blue-700 dark:text-blue-200 text-sm">
-            Manage your food allergies and keep your information secure
-          </p>
-          <Link
-            href="/allergyForm"
-            className="inline-flex items-center gap-2 rounded-full border border-solid border-transparent transition-colors bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 font-medium text-sm sm:text-base h-10 sm:h-12 px-6 sm:px-8"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Enter Allergy Information
-          </Link>
+    <div className="min-h-screen flex">
+      {/* Left Side - Image/Visual Section */}
+      <div className="flex-1 bg-gradient-to-br from-orange-300 via-orange-400 to-orange-500 relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-10 left-10 w-32 h-32 bg-white rounded-full blur-xl"></div>
+          <div className="absolute top-40 right-20 w-24 h-24 bg-white rounded-full blur-xl"></div>
+          <div className="absolute bottom-20 left-20 w-40 h-40 bg-white rounded-full blur-xl"></div>
         </div>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+        
+        {/* Central Visual Element */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="relative">
+            {/* Pill-shaped container with images */}
+            <div className="w-80 h-96 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/30 shadow-2xl">
+              <div className="w-72 h-88 bg-gradient-to-b from-sky-200 to-sky-400 rounded-full overflow-hidden border-4 border-white shadow-xl">
+                {/* Food safety illustration placeholder */}
+                <div className="w-full h-full flex items-center justify-center text-6xl">
+                  🍽️🛡️
+                </div>
+              </div>
+            </div>
+            
+            {/* Floating elements */}
+            <div className="absolute -top-8 -right-8 w-16 h-16 bg-white/30 rounded-full flex items-center justify-center text-2xl animate-bounce">
+              ⚠️
+            </div>
+            <div className="absolute -bottom-6 -left-6 w-12 h-12 bg-white/30 rounded-full flex items-center justify-center text-xl animate-pulse">
+              ✅
+            </div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+
+      {/* Right Side - Content Section */}
+      <div className="flex-1 bg-gradient-to-br from-red-400 via-red-500 to-red-600 flex items-center justify-center p-8 lg:p-16">
+        <div className="max-w-lg w-full text-center">
+          {/* Brand */}
+          <div className="mb-8">
+            <div className="inline-flex items-center gap-3 mb-4">
+              <span className="text-white text-2xl">🌟</span>
+              <span className="text-white text-lg font-medium tracking-wider">Allergy Alert</span>
+            </div>
+          </div>
+
+          {/* Main Heading */}
+          <div className="mb-8">
+            <h1 className="text-white text-6xl lg:text-7xl font-bold leading-tight mb-4">
+              Stay
+              <br />
+              <span className="relative">
+                safe
+                <div className="absolute bottom-2 left-0 right-0 h-3 bg-white/30 rounded-full transform -skew-x-12"></div>
+              </span>
+            </h1>
+            
+            {/* Subtitle */}
+            <p className="text-white/90 text-xl lg:text-2xl font-light mt-6 leading-relaxed">
+              Smart allergy predictions, personalized for you
+            </p>
+          </div>
+
+          {/* Call to Action Button */}
+          <div className="mb-8">
+            <Link
+              href="/allergyForm"
+              className="group inline-flex items-center justify-center px-8 py-4 text-lg font-semibold rounded-full text-red-600 bg-white hover:bg-gray-50 focus:outline-none focus:ring-4 focus:ring-white/30 transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-3xl min-w-[200px]"
+            >
+              <span className="mr-3">Get Protected</span>
+              <svg className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </Link>
+          </div>
+
+          {/* Features */}
+          <div className="space-y-4 text-white/80">
+            <div className="flex items-center justify-center space-x-3">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Instant restaurant safety checks</span>
+            </div>
+            <div className="flex items-center justify-center space-x-3">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>AI-powered menu analysis</span>
+            </div>
+            <div className="flex items-center justify-center space-x-3">
+              <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Personalized recommendations</span>
+            </div>
+          </div>
+
+          {/* Trust indicator */}
+          <div className="mt-12 pt-8 border-t border-white/20">
+            <p className="text-white/60 text-sm">
+              Trusted by thousands of people with food allergies
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
