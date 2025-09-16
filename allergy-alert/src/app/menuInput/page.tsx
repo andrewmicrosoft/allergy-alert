@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { getSafeFoodsByRestaurantName } from '../modules/aiFunctions.mjs';
+import { useAllergy } from '../contexts/AllergyContext';
 
 interface ProcessingData {
   option: string;
@@ -17,43 +18,31 @@ interface ProcessingData {
 interface FoodItem {
   name: string;
   safetyClassification: "More Safe" | "Questionable" | "Avoid";
-  questions: string[];
-  allergenNotes?: string;
+  reasoning: string;
+  questions: string;
 }
 
-interface MenuAnalysis {
+interface MenuData {
   restaurantName: string;
-  userAllergies: string[];
-  analysisDate: string;
-  moreSafeItems: FoodItem[];
-  questionableItems: FoodItem[];
-  avoidItems: FoodItem[];
-  generalNotes?: string;
-  error?: string;
-  rawResponse?: string;
+  restaurantInfo: string;
+  foods: FoodItem[];
 }
 
 export default function MenuInput() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const { userProfile } = useAllergy();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   
-  // Get allergies from URL parameters
-  const [userAllergies, setUserAllergies] = useState<string[]>([]);
+  // Get allergies from context
+  const userAllergies = userProfile?.allergies || [];
   
+  // Redirect to allergy form if no allergies are set
   useEffect(() => {
-    const allergiesParam = searchParams.get('allergies');
-    if (allergiesParam) {
-      try {
-        const allergies = JSON.parse(decodeURIComponent(allergiesParam));
-        setUserAllergies(allergies);
-      } catch (error) {
-        console.error('Failed to parse allergies from URL:', error);
-        setUserAllergies([]);
-      }
+    if (userAllergies.length === 0) {
+      router.push('/allergyForm');
     }
-  }, [searchParams]);
+  }, [userAllergies, router]);
   
   const [selectedOption, setSelectedOption] = useState<string>('');
   const [restaurantName, setRestaurantName] = useState<string>('');
@@ -62,8 +51,13 @@ export default function MenuInput() {
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [aiResults, setAiResults] = useState<MenuAnalysis | null>(null);
+  const [menuData, setMenuData] = useState<MenuData | null>(null);
   const [showResults, setShowResults] = useState<boolean>(false);
+  const [expandedCategories, setExpandedCategories] = useState<{[key: string]: boolean}>({
+    'More Safe': true,
+    'Questionable': false,
+    'Avoid': false
+  });
 
   // Cleanup object URLs on component unmount
   useEffect(() => {
@@ -140,10 +134,17 @@ export default function MenuInput() {
     setError('');
   };
 
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+  };
+
   const validateAndProceed = async () => {
     setIsProcessing(true);
     setError('');
-    setAiResults(null);
+    setMenuData(null);
     setShowResults(false);
 
     try {
@@ -169,17 +170,21 @@ export default function MenuInput() {
         console.log('User allergies:', userAllergies);
 
         // Call the AI function with restaurant name and allergies
-        const aiResponse = await getSafeFoodsByRestaurantName(restaurantName.trim(), userAllergies);
+        let aiResponse = await getSafeFoodsByRestaurantName(restaurantName.trim(), userAllergies);
 
+        // if aiResponse is null, make it empty string.
         if (!aiResponse) {
-          setError('Unable to fetch results from the AI service');
-          setIsProcessing(false);
-          return;
+            aiResponse = '{"restaurantName": "", "foods": []}';
         }
 
-        // The response is now JSON, so we can set it directly
-        setAiResults(aiResponse);
-        setShowResults(true);
+        try {
+          const parsedData: MenuData = JSON.parse(aiResponse);
+          setMenuData(parsedData);
+          setShowResults(true);
+        } catch (parseError) {
+          console.error('Failed to parse JSON response:', parseError);
+          setError('Unable to parse response from AI service. Please try again.');
+        }
 
       } else if (selectedOption === 'picture') {
         if (!selectedFile) {
@@ -207,16 +212,33 @@ export default function MenuInput() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white shadow-lg rounded-lg p-8">
+        {/* Header matching dashboard style */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-6 justify-center">
+            <div className="flex items-center gap-2">
+              <span className="text-purple-600 text-2xl">🌟</span>
+              <h1 className="text-2xl font-bold text-gray-800">Allergy Alert</h1>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white shadow-lg rounded-3xl p-8 border border-white/20 backdrop-blur-sm">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 text-center">
+            <h2 className="text-3xl font-bold text-gray-900 text-center">
               Menu Analysis
-            </h1>
+            </h2>
             <p className="mt-2 text-center text-gray-600">
               Choose how you'd like to check for allergens in your food
             </p>
+            {userProfile && (
+              <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-2xl">
+                <p className="text-sm text-center text-purple-800">
+                  <span className="font-medium">Hello {userProfile.name}!</span> We'll check for: {userAllergies.join(', ')}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Option Selection */}
@@ -224,15 +246,15 @@ export default function MenuInput() {
             {/* Picture Option (Camera + Upload) */}
             <div
               onClick={() => handleOptionSelect('picture')}
-              className={`cursor-pointer rounded-lg border-2 p-6 text-center transition-all duration-200 ${
+              className={`cursor-pointer rounded-2xl border-2 p-6 text-center transition-all duration-200 transform hover:scale-105 ${
                 selectedOption === 'picture'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  ? 'border-purple-500 bg-purple-50 shadow-lg'
+                  : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50/50'
               }`}
             >
               <div className="flex flex-col items-center space-y-4">
                 <div className={`rounded-full p-4 ${
-                  selectedOption === 'picture' ? 'bg-blue-500' : 'bg-gray-400'
+                  selectedOption === 'picture' ? 'bg-purple-500' : 'bg-gray-400'
                 }`}>
                   <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -248,15 +270,15 @@ export default function MenuInput() {
             {/* Text Input Option */}
             <div
               onClick={() => handleOptionSelect('text')}
-              className={`cursor-pointer rounded-lg border-2 p-6 text-center transition-all duration-200 ${
+              className={`cursor-pointer rounded-2xl border-2 p-6 text-center transition-all duration-200 transform hover:scale-105 ${
                 selectedOption === 'text'
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  ? 'border-purple-500 bg-purple-50 shadow-lg'
+                  : 'border-gray-200 hover:border-purple-300 hover:bg-purple-50/50'
               }`}
             >
               <div className="flex flex-col items-center space-y-4">
                 <div className={`rounded-full p-4 ${
-                  selectedOption === 'text' ? 'bg-blue-500' : 'bg-gray-400'
+                  selectedOption === 'text' ? 'bg-purple-500' : 'bg-gray-400'
                 }`}>
                   <svg className="h-8 w-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -354,7 +376,7 @@ export default function MenuInput() {
                         id="restaurant"
                         value={restaurantName}
                         onChange={(e) => handleTextInputChange('restaurant', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
                         placeholder="e.g., McDonald's, Olive Garden"
                       />
                     </div>
@@ -367,7 +389,7 @@ export default function MenuInput() {
                         id="food"
                         value={foodName}
                         onChange={(e) => handleTextInputChange('food', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-200"
                         placeholder="e.g., Caesar Salad, Chicken Sandwich"
                       />
                     </div>
@@ -390,10 +412,10 @@ export default function MenuInput() {
                 <button
                   onClick={validateAndProceed}
                   disabled={isProcessing}
-                  className={`inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white transition duration-200 ${
+                  className={`inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-xl text-white transition-all duration-200 transform hover:scale-105 shadow-lg ${
                     isProcessing
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500'
+                      ? 'bg-gray-400 cursor-not-allowed scale-100'
+                      : 'bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500'
                   }`}
                 >
                   {isProcessing ? (
@@ -415,8 +437,8 @@ export default function MenuInput() {
                 </button>
               </div>
 
-              {/* AI Results Display */}
-              {showResults && aiResults && (
+              {/* Food Safety Results Display */}
+              {showResults && menuData && (
                 <div className="mt-8 p-6 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-start">
                     <div className="flex-shrink-0">
@@ -426,151 +448,104 @@ export default function MenuInput() {
                     </div>
                     <div className="ml-3 flex-1">
                       <h3 className="text-lg font-medium text-blue-900 mb-3">
-                        Allergy Analysis Results for {aiResults.restaurantName}
+                        Allergy Analysis Results for {menuData.restaurantName}
                       </h3>
-                      
-                      {/* User Allergies */}
-                      {aiResults.userAllergies && aiResults.userAllergies.length > 0 && (
+                      {menuData.restaurantInfo && (
+                        <div className="mb-4">
+                          <p className="text-sm font-medium text-blue-800">Restaurant Information:</p>
+                          <p className="text-sm text-blue-700">{menuData.restaurantInfo}</p>
+                        </div>
+                      )}
+                      {userAllergies.length > 0 && (
                         <div className="mb-4">
                           <p className="text-sm font-medium text-blue-800">Your allergies:</p>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {aiResults.userAllergies.map((allergy, index) => (
-                              <span key={index} className="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
-                                {allergy}
-                              </span>
-                            ))}
-                          </div>
+                          <p className="text-sm text-blue-700">{userAllergies.join(', ')}</p>
                         </div>
                       )}
+                      
+                      {/* Safety Classification Dropdowns */}
+                      <div className="space-y-4">
+                        {(['More Safe', 'Questionable', 'Avoid'] as const).map((category) => {
+                          const categoryFoods = menuData.foods.filter(food => food.safetyClassification === category);
+                          const categoryColors = {
+                            'More Safe': 'bg-green-100 border-green-200 text-green-800',
+                            'Questionable': 'bg-yellow-100 border-yellow-200 text-yellow-800',
+                            'Avoid': 'bg-red-100 border-red-200 text-red-800'
+                          };
+                          const iconColors = {
+                            'More Safe': 'text-green-600',
+                            'Questionable': 'text-yellow-600',
+                            'Avoid': 'text-red-600'
+                          };
+                          
+                          if (categoryFoods.length === 0) return null;
+                          
+                          return (
+                            <div key={category} className={`border rounded-lg ${categoryColors[category]}`}>
+                              <button
+                                onClick={() => toggleCategory(category)}
+                                className="w-full px-4 py-3 flex items-center justify-between text-left hover:opacity-80 transition-opacity"
+                              >
+                                <div className="flex items-center space-x-3">
+                                  <div className={`flex-shrink-0 ${iconColors[category]}`}>
+                                    {category === 'More Safe' && (
+                                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                      </svg>
+                                    )}
+                                    {category === 'Questionable' && (
+                                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                      </svg>
+                                    )}
+                                    {category === 'Avoid' && (
+                                      <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4.5c-.77-.833-2.694-.833-3.464 0L3.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                      </svg>
+                                    )}
+                                  </div>
+                                  <span className="font-medium">{category}</span>
+                                  <span className="text-sm opacity-75">({categoryFoods.length} items)</span>
+                                </div>
+                                <svg
+                                  className={`h-5 w-5 transform transition-transform ${
+                                    expandedCategories[category] ? 'rotate-180' : ''
+                                  }`}
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+                              
+                              {expandedCategories[category] && (
+                                <div className="px-4 pb-4">
+                                  <div className="space-y-3">
+                                    {categoryFoods.map((food, index) => (
+                                      <div key={index} className="bg-white p-4 rounded-md border border-gray-200">
+                                        <h4 className="font-medium text-gray-900 mb-3">{food.name}</h4>
 
-                      {/* Analysis Date */}
-                      <div className="mb-4 text-xs text-blue-600">
-                        Analysis completed: {new Date(aiResults.analysisDate).toLocaleString()}
+                                        {food.reasoning && (
+                                          <div className="mb-2">
+                                            <p className="text-xs font-medium text-gray-700 uppercase tracking-wide mb-1">Reasoning:</p>
+                                            <p className="text-sm text-gray-800">{food.reasoning}</p>
+                                          </div>
+                                        )}
+
+                                        <div>
+                                          <p className="text-xs font-medium text-gray-700 uppercase tracking-wide mb-1">Question to Ask:</p>
+                                          <p className="text-sm text-gray-600">{food.questions}</p>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-
-                      {/* Error Handling */}
-                      {aiResults.error && (
-                        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                          <p className="text-sm text-yellow-800">
-                            <strong>Note:</strong> {aiResults.error}
-                          </p>
-                          {aiResults.rawResponse && (
-                            <details className="mt-2">
-                              <summary className="cursor-pointer text-xs text-yellow-600">Show raw response</summary>
-                              <pre className="mt-2 text-xs bg-yellow-100 p-2 rounded whitespace-pre-wrap">
-                                {aiResults.rawResponse}
-                              </pre>
-                            </details>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Food Categories */}
-                      <div className="space-y-6">
-                        {/* More Safe Items */}
-                        {aiResults.moreSafeItems && aiResults.moreSafeItems.length > 0 && (
-                          <div className="bg-green-50 border border-green-200 rounded-md p-4">
-                            <h4 className="text-base font-semibold text-green-800 mb-3 flex items-center">
-                              <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              More Safe ({aiResults.moreSafeItems.length} items)
-                            </h4>
-                            <div className="space-y-3">
-                              {aiResults.moreSafeItems.map((item, index) => (
-                                <div key={index} className="bg-white p-3 rounded border border-green-100">
-                                  <h5 className="font-medium text-green-900">{item.name}</h5>
-                                  {item.allergenNotes && (
-                                    <p className="text-sm text-green-700 mt-1">{item.allergenNotes}</p>
-                                  )}
-                                  {item.questions && item.questions.length > 0 && (
-                                    <div className="mt-2">
-                                      <p className="text-xs font-medium text-green-800">Questions to ask:</p>
-                                      <ul className="text-xs text-green-700 list-disc list-inside mt-1">
-                                        {item.questions.map((question, qIndex) => (
-                                          <li key={qIndex}>{question}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Questionable Items */}
-                        {aiResults.questionableItems && aiResults.questionableItems.length > 0 && (
-                          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-                            <h4 className="text-base font-semibold text-yellow-800 mb-3 flex items-center">
-                              <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
-                              </svg>
-                              Questionable ({aiResults.questionableItems.length} items)
-                            </h4>
-                            <div className="space-y-3">
-                              {aiResults.questionableItems.map((item, index) => (
-                                <div key={index} className="bg-white p-3 rounded border border-yellow-100">
-                                  <h5 className="font-medium text-yellow-900">{item.name}</h5>
-                                  {item.allergenNotes && (
-                                    <p className="text-sm text-yellow-700 mt-1">{item.allergenNotes}</p>
-                                  )}
-                                  {item.questions && item.questions.length > 0 && (
-                                    <div className="mt-2">
-                                      <p className="text-xs font-medium text-yellow-800">Questions to ask:</p>
-                                      <ul className="text-xs text-yellow-700 list-disc list-inside mt-1">
-                                        {item.questions.map((question, qIndex) => (
-                                          <li key={qIndex}>{question}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Avoid Items */}
-                        {aiResults.avoidItems && aiResults.avoidItems.length > 0 && (
-                          <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                            <h4 className="text-base font-semibold text-red-800 mb-3 flex items-center">
-                              <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              Avoid ({aiResults.avoidItems.length} items)
-                            </h4>
-                            <div className="space-y-3">
-                              {aiResults.avoidItems.map((item, index) => (
-                                <div key={index} className="bg-white p-3 rounded border border-red-100">
-                                  <h5 className="font-medium text-red-900">{item.name}</h5>
-                                  {item.allergenNotes && (
-                                    <p className="text-sm text-red-700 mt-1">{item.allergenNotes}</p>
-                                  )}
-                                  {item.questions && item.questions.length > 0 && (
-                                    <div className="mt-2">
-                                      <p className="text-xs font-medium text-red-800">Questions to ask:</p>
-                                      <ul className="text-xs text-red-700 list-disc list-inside mt-1">
-                                        {item.questions.map((question, qIndex) => (
-                                          <li key={qIndex}>{question}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* General Notes */}
-                      {aiResults.generalNotes && (
-                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                          <h4 className="text-sm font-medium text-blue-800 mb-2">General Notes:</h4>
-                          <p className="text-sm text-blue-700">{aiResults.generalNotes}</p>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
