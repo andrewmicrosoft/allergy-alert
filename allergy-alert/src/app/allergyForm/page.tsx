@@ -202,7 +202,7 @@ export default function AllergyForm() {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Navigate to menuInput without query params
-      router.push('/menuInput');
+      router.push('/dashboard');
       
     } catch (error) {
       console.error('Submission error:', error);

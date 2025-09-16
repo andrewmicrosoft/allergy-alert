@@ -1,6 +1,22 @@
 import { AzureOpenAI } from "openai";
 import { zodResponseFormat } from 'openai/helpers/zod';
 import { z } from 'zod';
+import dotenv from 'dotenv';
+
+// Load environment variables - handle both Node.js and Next.js environments
+if (typeof window === 'undefined') {
+  // Server-side: Load from .env file if it exists
+  try {
+    dotenv.config({ path: '.env' });
+  } catch (error) {
+    // If .env file doesn't exist, continue with system environment variables
+    console.log('.env file not found, using system environment variables');
+  }
+} else {
+  // Client-side: Next.js will handle environment variables
+  // Only NEXT_PUBLIC_ prefixed variables are available on client-side
+  console.log('Running in browser - using Next.js environment variables');
+}
 
 const FoodItemSchema = z.object({
   name: z.string().describe("The name of the food item"),
@@ -17,19 +33,20 @@ const MenuSchema = z.object({
 
 export async function getSafeFoodsByRestaurantName(restaurantName, allergies) {
 
-const apiKey = process.env.AZURE_OPENAI_API_KEY;
-const apiVersion = process.env.AZURE_OPENAI_API_VERSION || "2024-08-01-preview";
-const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
-const modelName = process.env.AZURE_OPENAI_MODEL_NAME || "gpt-4o";
-const deployment = process.env.AZURE_OPENAI_DEPLOYMENT || "gpt-4o";
+// Get environment variables - handle both server and client environments
+const apiKey = process.env.AZURE_OPENAI_API_KEY || process.env.NEXT_PUBLIC_AZURE_OPENAI_API_KEY;
+const apiVersion = process.env.AZURE_OPENAI_API_VERSION || process.env.NEXT_PUBLIC_AZURE_OPENAI_API_VERSION || "2024-08-01-preview";
+const endpoint = process.env.AZURE_OPENAI_ENDPOINT || process.env.NEXT_PUBLIC_AZURE_OPENAI_ENDPOINT;
+const modelName = process.env.AZURE_OPENAI_MODEL_NAME || process.env.NEXT_PUBLIC_AZURE_OPENAI_MODEL_NAME || "gpt-4o";
+const deployment = process.env.AZURE_OPENAI_DEPLOYMENT || process.env.NEXT_PUBLIC_AZURE_OPENAI_DEPLOYMENT || "gpt-4o";
 const dangerouslyAllowBrowser = true;
 
 // Check for required environment variables
 if (!apiKey) {
-  throw new Error('AZURE_OPENAI_API_KEY environment variable is required');
+  throw new Error("Missing required environment variable: AZURE_OPENAI_API_KEY");
 }
 if (!endpoint) {
-  throw new Error('AZURE_OPENAI_ENDPOINT environment variable is required');
+  throw new Error("Missing required environment variable: AZURE_OPENAI_ENDPOINT");
 }
 
 const options = { endpoint, apiKey, deployment, apiVersion, dangerouslyAllowBrowser }

@@ -2,20 +2,47 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, set up your environment variables by creating a `.env.local` file in the root directory:
+### Environment Variables Setup
 
+This project supports environment-specific configuration files. Create the appropriate environment file based on your needs:
+
+**Option 1: PowerShell Script (Windows)**
 ```bash
-cp .env.local.example .env.local
+cp setEnv.ps1.template setEnv.ps1
+```
+Then fill in the correct values and run the script to set your environment variables.
+
+**Option 2: Environment Files**
+The application will automatically load environment variables in this priority order:
+1. `.env.${NODE_ENV}.local` (e.g., `.env.development.local`, `.env.production.local`)
+2. `.env.local` (loaded for all environments except test)
+3. `.env.${NODE_ENV}` (e.g., `.env.development`, `.env.production`)
+4. `.env` (default fallback)
+
+**For Development:**
+```bash
+cp .env.development .env.development.local
+# Edit .env.development.local with your actual credentials
 ```
 
-Then add your Azure OpenAI configuration:
+**For Production:**
+```bash
+cp .env.production .env.production.local
+# Edit .env.production.local with your actual credentials
+```
 
-```env
-AZURE_OPENAI_API_KEY=your_azure_openai_api_key_here
-AZURE_OPENAI_ENDPOINT=https://your-resource-name.cognitiveservices.azure.com/
-AZURE_OPENAI_MODEL_NAME=gpt-4o
-AZURE_OPENAI_DEPLOYMENT=gpt-4o
-AZURE_OPENAI_API_VERSION=2024-08-01-preview
+### Running with Different Environments
+
+```bash
+# Development (default)
+NODE_ENV=development node script.js
+
+# Production
+NODE_ENV=production node script.js
+
+# Or set it in PowerShell
+$env:NODE_ENV="production"
+node script.js
 ```
 
 ### Required Environment Variables
